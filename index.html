@@ -526,6 +526,27 @@
             return `${year}年${month}月${day}日(${weekday})`;
         }
 
+        // 日数を「y年mヶ月」または「mヶ月d日」形式でフォーマット
+        function formatYearMonthDay(days) {
+            const absDays = Math.abs(days);
+            if (absDays < 31) {
+                return `${absDays}日`;
+            }
+            const years = Math.floor(absDays / 365);
+            const months = Math.floor((absDays % 365) / 30);
+            const daysLeft = absDays - years * 365 - months * 30;
+            if (years > 0) {
+                let result = `${years}年`;
+                if (months > 0) result += `${months}ヶ月`;
+                return result;
+            } else {
+                let result = '';
+                if (months > 0) result += `${months}ヶ月`;
+                if (daysLeft > 0) result += `${daysLeft}日`;
+                return result;
+            }
+        }
+
         // プログレスバーの計算（カウントダウン用）
         function calculateCountdownProgress(dateStr) {
             const targetDate = new Date(dateStr);
@@ -644,17 +665,18 @@
                 const expiredClass = (counter.type === 'countdown' && daysDiff < 0) ? 'expired' : '';
 
                 let displayText = '';
+                let hoverText = `${Math.abs(daysDiff)}日`;
                 const dateStr = formatDate(counter.date);
 
                 let unitHtml = '';
                 if (counter.type === 'countdown') {
                     unitHtml = `<div class="counter-unit counter-info-right">${dateStr}まで</div>`;
                     if (daysDiff < 0) {
-                        displayText = `${Math.abs(daysDiff)}日`;
+                        displayText = formatYearMonthDay(daysDiff);
                     } else if (daysDiff === 0) {
                         displayText = '今日';
                     } else {
-                        displayText = `${daysDiff}日`;
+                        displayText = formatYearMonthDay(daysDiff);
                     }
                 } else {
                     unitHtml = `<div class="counter-unit counter-info-left">${dateStr}から</div>`;
@@ -663,7 +685,7 @@
                     } else if (daysDiff === 0) {
                         displayText = '今日';
                     } else {
-                        displayText = `${Math.abs(daysDiff)}日`;
+                        displayText = formatYearMonthDay(daysDiff);
                     }
                 }
 
@@ -743,13 +765,22 @@
                 div.className = `counter ${counterClass} ${expiredClass}`;
                 div.innerHTML = `
                     <div class="counter-title">${counter.title}</div>
-                    <div class="counter-value">${displayText}</div>
+                    <div class="counter-value" title="${hoverText}">${displayText}</div>
                     ${unitHtml}
                     ${counter.note ? `<div class="counter-note">${counter.note}</div>` : ''}
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: ${progressPercent}%"></div>
                     </div>
                 `;
+                // マウスホバーで一時的にテキストを置き換え
+                const valueElem = div.querySelector('.counter-value');
+                let originalText = displayText;
+                div.addEventListener('mouseenter', () => {
+                    if (valueElem) valueElem.textContent = hoverText;
+                });
+                div.addEventListener('mouseleave', () => {
+                    if (valueElem) valueElem.textContent = originalText;
+                });
                 // 右クリックで削除
                 div.addEventListener('contextmenu', async (e) => {
                     e.preventDefault();
