@@ -8,12 +8,6 @@
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏱️</text></svg>" />
     <title>カウントダウン・カウントアップ</title>
     <style>
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 12px;
-        }
-
         :root {
             --primary: #4e6cf2;
             --primary-hover: #3c53d6;
@@ -45,12 +39,20 @@
             max-width: 100%;
             width: 100%;
             margin: 0 auto;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 8px;
         }
 
         .composer {
             background: var(--card-bg);
             border-radius: var(--radius);
             box-shadow: 0 2px 8px var(--shadow);
+            padding: 8px;
         }
 
         input {
@@ -58,13 +60,15 @@
         }
 
         input[type="text"],
-        input[type="date"] {
+        input[type="date"],
+        select {
             width: 100%;
-            padding: 0.75rem 1rem;
+            padding: 0.5rem 0.75rem;
             border: 1px solid var(--border);
             border-radius: var(--radius);
             transition: var(--transition);
             font-family: inherit;
+            font-size: 0.9rem;
         }
 
         input[type="text"]:focus,
@@ -74,19 +78,8 @@
             box-shadow: 0 0 0 2px rgba(78, 108, 242, 0.2);
         }
 
-        select {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            transition: var(--transition);
-            font-family: inherit;
-            margin-bottom: 10px;
-            background-color: white;
-        }
-
         .btn {
-            padding: 0.75rem 1rem;
+            padding: 0.5rem 0.75rem;
             background: var(--primary);
             color: white;
             border: none;
@@ -94,6 +87,7 @@
             cursor: pointer;
             transition: var(--transition);
             width: 100%;
+            font-size: 0.9rem;
         }
 
         .btn:hover {
@@ -101,17 +95,18 @@
         }
 
         .form-group {
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         label {
             display: block;
             color: #4a5568;
+            font-size: 0.85rem;
         }
 
         #counters {
             display: grid;
-            gap: 12px;
+            gap: 8px;
             grid-template-columns: 1fr;
             padding-top: 8px;
         }
@@ -136,7 +131,7 @@
 
         .counter {
             position: relative;
-            padding: 16px;
+            padding: 12px;
             border-radius: var(--radius);
             background: var(--card-bg);
             box-shadow: 0 2px 5px var(--shadow);
@@ -152,18 +147,20 @@
         }
 
         .counter-title {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: bold;
             color: #2d3748;
         }
 
-        .counter-date {
-            font-size: 0.9rem;
+        .counter-date,
+        .counter-unit,
+        .counter-note {
+            font-size: 0.8rem;
             color: #718096;
         }
 
         .counter-value {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
         }
 
@@ -173,11 +170,6 @@
 
         .countup .counter-value {
             color: var(--countup);
-        }
-
-        .counter-unit {
-            font-size: 0.9rem;
-            color: #718096;
         }
 
         .counter-actions {
@@ -319,21 +311,21 @@
             bottom: 32px;
             transform: translateX(-50%);
             display: flex;
-            gap: 24px;
+            gap: 16px;
             background: rgba(16, 185, 129, 0.185);
             /* エメラルドカラー */
             border-radius: 20px;
             backdrop-filter: blur(12px);
             /* 背景をぼかす */
             box-shadow: 2px 10px 16px rgba(181, 204, 200, 0.8);
-            padding: 8px 22px;
+            padding: 6px 16px;
             z-index: 9998;
-            height: 54px;
+            height: 48px;
             align-items: center;
         }
 
         #emoji-dock a {
-            font-size: 1.9rem;
+            font-size: 1.6rem;
             text-decoration: none;
             transition: transform 0.15s, filter 0.15s;
             filter: grayscale(0.2);
@@ -343,6 +335,24 @@
         #emoji-dock a:hover {
             transform: scale(1.25) translateY(-8px);
             filter: grayscale(0) drop-shadow(0 2px 8px #4e6cf2aa);
+        }
+
+        @media (max-width: 640px) {
+            .btn {
+                font-size: 0.8rem;
+            }
+
+            .counter {
+                padding: 10px;
+            }
+
+            .counter-title {
+                font-size: 0.9rem;
+            }
+
+            .counter-value {
+                font-size: 1.3rem;
+            }
         }
     </style>
 </head>
@@ -655,6 +665,9 @@
                     (counter.note && counter.note.includes(filterText));
             });
 
+            // 編集状態を保持するための内部変数
+            let editingIndex = null;
+
             // カウントダウン期限超過分とそれ以外で分ける
             const now = new Date();
             now.setHours(0, 0, 0, 0);
@@ -729,7 +742,7 @@
                     : calculateCountupProgress(counter.date);
 
                 // 編集モード判定
-                if (counter._editing) {
+                if (editingIndex === idx) {
                     // 編集UI
                     const div = document.createElement('div');
                     div.className = `counter ${counterClass} ${expiredClass}`;
@@ -755,7 +768,7 @@
                             newDate === counter.date &&
                             (newNote || null) === (counter.note || null)
                         ) {
-                            delete allCounters[idx]._editing;
+                            editingIndex = null; // 編集モード解除
                             renderCounters(document.getElementById('searchBox').value.trim());
                             return;
                         }
@@ -771,6 +784,7 @@
                             alert('同じ内容のカウンターが既に存在します');
                             return;
                         }
+
                         // 更新
                         allCounters[idx] = {
                             ...counter,
@@ -780,7 +794,7 @@
                             type: detectCounterType(newDate),
                             updated: new Date().toISOString(),
                         };
-                        delete allCounters[idx]._editing;
+                        editingIndex = null; // 編集モード解除
                         await saveToGitHub(allCounters, true);
                         renderCounters(document.getElementById('searchBox').value.trim());
                     };
@@ -833,16 +847,8 @@
                 });
                 // ダブルクリックで編集
                 div.addEventListener('dblclick', () => {
-                    // idxは表示リストのindexなので、元配列のindexを特定
-                    const realIdx = allCounters.findIndex(c =>
-                        c.title === counter.title &&
-                        c.date === counter.date &&
-                        (c.note || '') === (counter.note || '')
-                    );
-                    if (realIdx !== -1) {
-                        allCounters[realIdx]._editing = true;
-                        renderCounters(document.getElementById('searchBox').value.trim());
-                    }
+                    editingIndex = idx; // 編集モードに設定
+                    renderCounters(document.getElementById('searchBox').value.trim());
                 });
                 container.appendChild(div);
             });
